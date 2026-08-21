@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Math Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'JetBrains Mono', 'Courier New', Courier, monospace; background-color: #f8fafc; }
+        .glass { background: white; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
+        
+        .flash-red { animation: flashR 0.4s; }
+        .flash-green { animation: flashG 0.4s; }
+        
+        @keyframes flashR { 0% { background-color: #fee2e2; } 100% { background-color: transparent; } }
+        @keyframes flashG { 0% { background-color: #dcfce3; } 100% { background-color: transparent; } }
+
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 text-slate-800 transition-colors" id="app-body">
+
+    <!-- SCHERMATA MENU -->
+    <div id="menu-screen" class="glass w-full max-w-2xl p-8">
+        <h1 class="text-3xl font-black text-center mb-2 text-indigo-600">Mental Math Pro</h1>
+        <p class="text-center text-slate-500 mb-8 font-sans">Allena la tua mente. Scegli le impostazioni e inizia.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Impostazioni -->
+            <div>
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">1. Impostazioni Numeri</h3>
+                <div class="flex gap-4 mb-6">
+                    <div class="flex-1">
+                        <label class="block text-sm text-slate-500 mb-1">Minimo</label>
+                        <input type="number" id="num-min" value="1" class="w-full border-2 border-slate-200 rounded-lg p-2 font-bold focus:border-indigo-500 outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm text-slate-500 mb-1">Massimo</label>
+                        <input type="number" id="num-max" value="100" class="w-full border-2 border-slate-200 rounded-lg p-2 font-bold focus:border-indigo-500 outline-none">
+                    </div>
+                </div>
+
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">2. Operazioni</h3>
+                <div class="space-y-2 mb-6" id="operations-container">
+                    <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" value="add" checked class="w-5 h-5 text-indigo-600 rounded"> Addizione (+)</label>
+                    <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" value="sub" checked class="w-5 h-5 text-indigo-600 rounded"> Sottrazione (-)</label>
+                    <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" value="mul" checked class="w-5 h-5 text-indigo-600 rounded"> Moltiplicazione (×)</label>
+                    <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" value="div" checked class="w-5 h-5 text-indigo-600 rounded"> Divisione (÷)</label>
+                    <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" value="frac" class="w-5 h-5 text-indigo-600 rounded"> Frazioni in Decimali</label>
+                    <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" value="dec" class="w-5 h-5 text-indigo-600 rounded"> Calcolo tra Decimali</label>
+                </div>
+            </div>
+
+            <!-- Modalità -->
+            <div>
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">3. Modalità di Gioco</h3>
+                <div class="space-y-3">
+                    <button onclick="startGame('sprint')" class="w-full text-left p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition group">
+                        <div class="font-bold text-indigo-700 text-lg group-hover:translate-x-1 transition-transform">⏱️ Sprint 2 Minuti</div>
+                        <div class="text-sm text-slate-500 mt-1 font-sans">Risolvi il più possibile in 120 secondi.</div>
+                    </button>
+                    
+                    <button onclick="startGame('marathon')" class="w-full text-left p-4 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition group">
+                        <div class="font-bold text-blue-700 text-lg group-hover:translate-x-1 transition-transform">🏃 Maratona 80 Qs</div>
+                        <div class="text-sm text-slate-500 mt-1 font-sans">Risolvi 80 domande. Tempo limite: 8 minuti.</div>
+                    </button>
+
+                    <button onclick="startGame('survival')" class="w-full text-left p-4 rounded-xl border-2 border-slate-200 hover:border-rose-500 hover:bg-rose-50 transition group">
+                        <div class="font-bold text-rose-700 text-lg group-hover:translate-x-1 transition-transform">🔥 Survival</div>
+                        <div class="text-sm text-slate-500 mt-1 font-sans">Parti con 20s. Corretto: +2s. Sbagliato: -3s.</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHERMATA GIOCO -->
+    <div id="game-screen" class="hidden glass w-full max-w-2xl p-8 text-center relative overflow-hidden">
+        <div class="flex justify-between items-center mb-8 text-slate-500 font-bold">
+            <div class="text-xl">Punti: <span id="ui-score" class="text-indigo-600 text-2xl">0</span><span id="ui-total" class="hidden">/80</span></div>
+            <div class="text-xl flex items-center gap-2">
+                ⏳ <span id="ui-time" class="text-2xl text-slate-800">120</span>
+                <span id="time-feedback" class="absolute -top-4 right-8 font-black text-lg opacity-0 transition-all"></span>
+            </div>
+        </div>
+
+        <div class="text-5xl md:text-7xl font-black mb-8 tracking-tighter" id="question-display">
+            <!-- Domanda generata qui -->
+        </div>
+
+        <input type="number" step="any" id="answer-input" class="w-full max-w-xs mx-auto text-center text-4xl border-b-4 border-slate-300 focus:border-indigo-600 outline-none pb-2 bg-transparent" placeholder="??" autocomplete="off">
+        
+        <p class="text-slate-400 mt-6 text-sm font-sans">Premi <strong>INVIO</strong> per confermare</p>
+    </div>
+
+    <!-- SCHERMATA RISULTATI -->
+    <div id="result-screen" class="hidden glass w-full max-w-md p-8 text-center">
+        <h2 class="text-4xl font-black mb-2 text-indigo-600">Tempo Scaduto!</h2>
+        <p class="text-slate-500 mb-8 font-sans">Ecco il tuo risultato finale.</p>
+        
+        <div class="bg-slate-50 rounded-xl p-6 mb-8 border border-slate-100">
+            <div class="text-6xl font-black text-slate-800 mb-2" id="final-score">0</div>
+            <div class="text-slate-500 uppercase tracking-widest text-sm font-bold">Risposte Corrette</div>
+            
+            <div class="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 gap-4 text-left">
+                <div>
+                    <span class="text-slate-400 text-xs uppercase block">Errori</span>
+                    <span class="text-xl font-bold text-rose-500" id="final-mistakes">0</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 text-xs uppercase block">Precisione</span>
+                    <span class="text-xl font-bold text-emerald-500" id="final-accuracy">100%</span>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="showMenu()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition">Gioca Ancora</button>
+    </div>
+
+    <script>
+        const fractions = [
+            {q: "1/2", a: 0.5}, {q: "1/4", a: 0.25}, {q: "3/4", a: 0.75},
+            {q: "1/5", a: 0.2}, {q: "2/5", a: 0.4}, {q: "3/5", a: 0.6}, {q: "4/5", a: 0.8},
+            {q: "1/8", a: 0.125}, {q: "3/8", a: 0.375}, {q: "1/10", a: 0.1}, {q: "1/3", a: 0.33}
+        ];
+
+        let state = { mode: '', time: 0, score: 0, mistakes: 0, currentAnswer: null, interval: null, activeOps: [], min: 1, max: 100 };
+        const inputField = document.getElementById('answer-input');
+        const body = document.getElementById('app-body');
+
+        function showMenu() {
+            document.getElementById('menu-screen').classList.remove('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+        }
+
+        function startGame(selectedMode) {
+            const checkboxes = document.querySelectorAll('#operations-container input:checked');
+            state.activeOps = Array.from(checkboxes).map(cb => cb.value);
+            
+            if(state.activeOps.length === 0) return alert("Seleziona almeno un'operazione!");
+
+            state.min = parseInt(document.getElementById('num-min').value) || 1;
+            state.max = parseInt(document.getElementById('num-max').value) || 100;
+            state.mode = selectedMode;
+            state.score = 0;
+            state.mistakes = 0;
+
+            document.getElementById('ui-total').classList.add('hidden');
+
+            if(state.mode === 'sprint') state.time = 120;
+            if(state.mode === 'marathon') { state.time = 480; document.getElementById('ui-total').classList.remove('hidden'); }
+            if(state.mode === 'survival') state.time = 20;
+
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            updateUI();
+            generateQuestion();
+            inputField.value = '';
+            inputField.focus();
+
+            clearInterval(state.interval);
+            state.interval = setInterval(tick, 1000);
+        }
+
+        function tick() {
+            state.time--;
+            updateUI();
+            if(state.time <= 0) endGame();
+        }
+
+        function updateUI() {
+            document.getElementById('ui-score').innerText = state.score;
+            document.getElementById('ui-time').innerText = state.time;
+            
+            if(state.time <= 10 && state.mode !== 'marathon') {
+                document.getElementById('ui-time').classList.add('text-rose-600');
+            } else {
+                document.getElementById('ui-time').classList.remove('text-rose-600');
+            }
+        }
+
+        function generateQuestion() {
+            const op = state.activeOps[Math.floor(Math.random() * state.activeOps.length)];
+            let a, b, c;
+            
+            const r = () => Math.floor(Math.random() * (state.max - state.min + 1)) + state.min;
+
+            if (op === 'add') {
+                a = r(); b = r();
+                document.getElementById('question-display').innerText = `${a} + ${b} =`;
+                state.currentAnswer = a + b;
+            } else if (op === 'sub') {
+                b = r(); c = r();
+                a = b + c; 
+                document.getElementById('question-display').innerText = `${a} - ${b} =`;
+                state.currentAnswer = c;
+            } else if (op === 'mul') {
+                a = r(); 
+                b = Math.floor(Math.random() * 12) + 2; 
+                document.getElementById('question-display').innerText = `${a} × ${b} =`;
+                state.currentAnswer = a * b;
+            } else if (op === 'div') {
+                b = Math.floor(Math.random() * 12) + 2; 
+                c = r();
+                a = b * c; 
+                document.getElementById('question-display').innerText = `${a} ÷ ${b} =`;
+                state.currentAnswer = c;
+            } else if (op === 'frac') {
+                const f = fractions[Math.floor(Math.random() * fractions.length)];
+                document.getElementById('question-display').innerText = `${f.q} =`;
+                state.currentAnswer = f.a;
+            } else if (op === 'dec') {
+                a = (Math.floor(Math.random() * 99) + 1) / 10;
+                b = (Math.floor(Math.random() * 99) + 1) / 10;
+                let decOp = Math.random() > 0.5 ? '+' : '-';
+                if(decOp === '-') {
+                    if(a < b) { let temp = a; a = b; b = temp; } 
+                }
+                document.getElementById('question-display').innerText = `${a.toFixed(1)} ${decOp} ${b.toFixed(1)} =`;
+                state.currentAnswer = decOp === '+' ? (a + b) : (a - b);
+                state.currentAnswer = Math.round(state.currentAnswer * 10) / 10; 
+            }
+        }
+
+        inputField.addEventListener('keypress', function(e) {
+            if(e.key === 'Enter' && this.value !== '') {
+                checkAnswer(parseFloat(this.value.replace(',','.'))); 
+            }
+        });
+
+        function checkAnswer(userAnswer) {
+            if(userAnswer === state.currentAnswer) {
+                state.score++;
+                if(state.mode === 'survival') showTimeFeedback('+2s', 'text-emerald-500', 2);
+                
+                body.classList.remove('flash-red');
+                void body.offsetWidth; 
+                body.classList.add('flash-green');
+                
+                inputField.value = '';
+                generateQuestion();
+
+                if(state.mode === 'marathon' && state.score >= 80) endGame();
+            } else {
+                state.mistakes++;
+                if(state.mode === 'survival') {
+                    showTimeFeedback('-3s', 'text-rose-500', -3);
+                    inputField.value = ''; 
+                }
+                
+                body.classList.remove('flash-green');
+                void body.offsetWidth;
+                body.classList.add('flash-red');
+            }
+            updateUI();
+        }
+
+        function showTimeFeedback(text, colorClass, timeDelta) {
+            state.time += timeDelta;
+            if(state.time < 0) state.time = 0;
+            
+            const fb = document.getElementById('time-feedback');
+            fb.innerText = text;
+            fb.className = `absolute -top-6 -right-4 font-black text-2xl transition-all duration-500 ${colorClass} opacity-100 transform translate-y-[-20px]`;
+            
+            setTimeout(() => {
+                fb.classList.replace('opacity-100', 'opacity-0');
+            }, 500);
+        }
+
+        function endGame() {
+            clearInterval(state.interval);
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            
+            document.getElementById('final-score').innerText = state.score;
+            document.getElementById('final-mistakes').innerText = state.mistakes;
+            
+            let totalAttempts = state.score + state.mistakes;
+            let accuracy = totalAttempts > 0 ? Math.round((state.score / totalAttempts) * 100) : 0;
+            document.getElementById('final-accuracy').innerText = accuracy + '%';
+        }
+    </script>
+</body>
+</html>
